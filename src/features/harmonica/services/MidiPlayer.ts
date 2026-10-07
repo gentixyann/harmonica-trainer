@@ -12,14 +12,12 @@ type MidiEvent = {
 type PlaybackOptions = {
   from: number;
   duration: number;
-  speed: number;
 };
 
 type PlaybackSession = {
   context: AudioContext;
   from: number;
   until: number;
-  speed: number;
   contextStart: number;
   nextEventIndex: number;
   timer: number;
@@ -49,7 +47,7 @@ export class MidiPlayer {
     };
   }
 
-  async play({ from, duration, speed }: PlaybackOptions) {
+  async play({ from, duration }: PlaybackOptions) {
     this.stop();
     const context = this.context ?? new AudioContext();
     this.context = context;
@@ -59,7 +57,6 @@ export class MidiPlayer {
       context,
       from,
       until: from + duration,
-      speed,
       contextStart: context.currentTime + 0.04,
       nextEventIndex: this.events.findIndex((event) => event.time + event.duration > from),
       timer: 0,
@@ -82,8 +79,8 @@ export class MidiPlayer {
 
   private scheduleUpcoming(session: PlaybackSession) {
     if (this.session !== session) return;
-    const sourceNow = session.from + Math.max(0, session.context.currentTime - session.contextStart) * session.speed;
-    const sourceAhead = Math.min(session.until, sourceNow + 3 * session.speed);
+    const sourceNow = session.from + Math.max(0, session.context.currentTime - session.contextStart);
+    const sourceAhead = Math.min(session.until, sourceNow + 3);
 
     while (session.nextEventIndex < this.events.length) {
       const event = this.events[session.nextEventIndex];
@@ -94,8 +91,8 @@ export class MidiPlayer {
       const noteEnd = Math.min(event.time + event.duration, session.until);
       if (noteEnd <= noteStart) continue;
 
-      const startAt = Math.max(session.context.currentTime + 0.005, session.contextStart + (noteStart - session.from) / session.speed);
-      this.scheduleNote(session.context, event, startAt, (noteEnd - noteStart) / session.speed);
+      const startAt = Math.max(session.context.currentTime + 0.005, session.contextStart + noteStart - session.from);
+      this.scheduleNote(session.context, event, startAt, noteEnd - noteStart);
     }
 
     if (session.nextEventIndex >= this.events.length || sourceNow >= session.until) window.clearInterval(session.timer);

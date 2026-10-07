@@ -2,7 +2,6 @@
 
 import { useEffect, useRef, useState } from "react";
 import { weddingMarch } from "../domain/weddingMarch";
-import type { HarmonicaNote } from "../domain/types";
 import { MidiPlayer } from "../services/MidiPlayer";
 import { PlaybackClock } from "../services/PlaybackClock";
 import { PlaybackControls } from "./PlaybackControls";
@@ -12,7 +11,6 @@ export function HarmonicaTrainer() {
   const [song, setSong] = useState(weddingMarch);
   const [isPlaying, setIsPlaying] = useState(false);
   const [elapsed, setElapsed] = useState(0);
-  const [speed, setSpeed] = useState(1);
   const [midiReady, setMidiReady] = useState(false);
   const [midiError, setMidiError] = useState(false);
   const clock = useRef(new PlaybackClock(weddingMarch.duration));
@@ -61,7 +59,6 @@ export function HarmonicaTrainer() {
     await midiPlayer.current.play({
       from: elapsed,
       duration: song.duration - elapsed,
-      speed,
     });
     clock.current.play(performance.now());
     setIsPlaying(true);
@@ -74,26 +71,11 @@ export function HarmonicaTrainer() {
     setElapsed(0);
   };
 
-  const updateSpeed = async (nextSpeed: number) => {
-    const now = performance.now();
-    const position = clock.current.positionAt(now);
-    clock.current.setSpeed(nextSpeed, now);
-    setElapsed(position);
-    setSpeed(nextSpeed);
-    if (isPlaying) await midiPlayer.current.play({ from: position, duration: song.duration - position, speed: nextSpeed });
-  };
-
-  const currentNote = findCurrentNote(song.notes, elapsed);
-
   const audioStatus = midiError ? "MIDIを読み込めませんでした" : midiReady ? undefined : "伴奏を読み込み中…";
 
   return <main className="rhythm-app">
-    <PlaybackControls elapsed={elapsed} duration={song.duration} isPlaying={isPlaying} speed={speed} current={currentNote} onToggle={togglePlayback} onReset={resetPlayback} onSpeedChange={updateSpeed} />
-    <RhythmStage song={song} elapsed={elapsed} currentNote={currentNote} />
+    <PlaybackControls elapsed={elapsed} duration={song.duration} isPlaying={isPlaying} onToggle={togglePlayback} onReset={resetPlayback} />
+    <RhythmStage song={song} elapsed={elapsed} />
     {audioStatus && <p className="audio-status">{audioStatus}</p>}
   </main>;
-}
-
-function findCurrentNote(notes: HarmonicaNote[], elapsed: number) {
-  return notes.find((note) => note.at <= elapsed && note.at + (note.length ?? 0.58) >= elapsed);
 }
