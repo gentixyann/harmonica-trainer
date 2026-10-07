@@ -71,10 +71,21 @@ export function HarmonicaTrainer() {
     setElapsed(0);
   };
 
+  const seekPlayback = async (position: number) => {
+    const nextPosition = Math.max(0, Math.min(position, song.duration));
+    clock.current.seek(nextPosition, performance.now());
+    setElapsed(nextPosition);
+    if (!isPlaying) return;
+
+    midiPlayer.current.stop();
+    await midiPlayer.current.play({ from: nextPosition, duration: song.duration - nextPosition });
+    clock.current.play(performance.now());
+  };
+
   const audioStatus = midiError ? "MIDIを読み込めませんでした" : midiReady ? undefined : "伴奏を読み込み中…";
 
   return <main className="rhythm-app">
-    <PlaybackControls elapsed={elapsed} duration={song.duration} isPlaying={isPlaying} onToggle={togglePlayback} onReset={resetPlayback} />
+    <PlaybackControls elapsed={elapsed} duration={song.duration} isPlaying={isPlaying} onToggle={togglePlayback} onReset={resetPlayback} onSeek={seekPlayback} />
     <RhythmStage song={song} elapsed={elapsed} />
     {audioStatus && <p className="audio-status">{audioStatus}</p>}
   </main>;

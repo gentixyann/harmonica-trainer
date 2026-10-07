@@ -22,6 +22,11 @@ export class PlaybackClock {
     this.pausedAt = 0;
   }
 
+  seek(position: number, now: number) {
+    this.pausedAt = Math.max(0, Math.min(position, this.duration));
+    if (this.startedAt !== null) this.startedAt = now;
+  }
+
   positionAt(now: number) {
     if (this.startedAt === null) return this.pausedAt;
     return Math.min(this.pausedAt + (now - this.startedAt) / 1000, this.duration);

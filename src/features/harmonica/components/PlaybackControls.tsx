@@ -4,9 +4,10 @@ type PlaybackControlsProps = {
   isPlaying: boolean;
   onToggle: () => void;
   onReset: () => void;
+  onSeek: (position: number) => void;
 };
 
-export function PlaybackControls({ elapsed, duration, isPlaying, onToggle, onReset }: PlaybackControlsProps) {
+export function PlaybackControls({ elapsed, duration, isPlaying, onToggle, onReset, onSeek }: PlaybackControlsProps) {
   const playLabel = isPlaying ? "Ⅱ 一時停止" : elapsed ? "▶ 再開" : "▶ 演奏スタート";
   return <>
     <header className="rhythm-header">
@@ -14,7 +15,14 @@ export function PlaybackControls({ elapsed, duration, isPlaying, onToggle, onRes
       <div className="header-actions"><button onClick={onReset}>↺ 最初から</button><button className="play-button" onClick={onToggle}>{playLabel}</button></div>
     </header>
     <footer className="rhythm-footer">
-      <div className="transport"><button onClick={onReset}>|◀</button><button className="round-play" onClick={onToggle}>{isPlaying ? "Ⅱ" : "▶"}</button><div className="time"><i style={{ width: `${elapsed / duration * 100}%` }} />{formatTime(elapsed)} / {formatTime(duration)}</div></div>
+      <div className="transport">
+        <button aria-label="最初から" onClick={onReset}>|◀</button>
+        <button aria-label={isPlaying ? "一時停止" : "再生"} className="round-play" onClick={onToggle}>{isPlaying ? "Ⅱ" : "▶"}</button>
+        <label className="seek-control">
+          <input aria-label="再生位置" type="range" min="0" max={duration} step="0.1" value={Math.min(elapsed, duration)} style={{ background: `linear-gradient(to right, #f1d14b ${elapsed / duration * 100}%, #3e444a ${elapsed / duration * 100}%)` }} onChange={(event) => onSeek(Number(event.target.value))} />
+          <span>{formatTime(elapsed)} / {formatTime(duration)}</span>
+        </label>
+      </div>
       <p className="score-credit">出典：Mutopia Project の結婚行進曲（CC BY-SA 4.0）を、TOMBO 3121 C調向けに主旋律化</p>
     </footer>
   </>;
