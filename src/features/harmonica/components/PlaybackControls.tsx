@@ -20,9 +20,14 @@ export function PlaybackControls({ elapsed, duration, isPlaying, speed, current,
     </header>
     <footer className="rhythm-footer">
       <div className="now-playing"><span>NOW</span>{current ? <><b>{current.hole}番</b><em className={current.breath}>{current.breath === "blow" ? "吹く" : "吸う"}</em></> : <b>{elapsed >= duration ? "CLEAR!" : "スタート待ち"}</b>}</div>
-      <div className="transport"><button onClick={onReset}>|◀</button><button className="round-play" onClick={onToggle}>{isPlaying ? "Ⅱ" : "▶"}</button><div className="time"><i style={{ width: `${elapsed / duration * 100}%` }} />{elapsed.toFixed(1)} / {duration}.0</div></div>
+      <div className="transport"><button onClick={onReset}>|◀</button><button className="round-play" onClick={onToggle}>{isPlaying ? "Ⅱ" : "▶"}</button><div className="time"><i style={{ width: `${elapsed / duration * 100}%` }} />{formatTime(elapsed)} / {formatTime(duration)}</div></div>
       <div className="speed" aria-label="再生速度">速度 {[0.75, 1, 1.25].map((value) => <button key={value} onClick={() => onSpeedChange(value)} className={speed === value ? "chosen" : ""}>{value}×</button>)}</div>
       <p className="score-credit">出典：Mutopia Project の結婚行進曲（CC BY-SA 4.0）を、TOMBO 3121 C調向けに主旋律化</p>
     </footer>
   </>;
+}
+
+function formatTime(seconds: number) {
+  const minutes = Math.floor(seconds / 60);
+  return `${minutes}:${Math.floor(seconds % 60).toString().padStart(2, "0")}`;
 }

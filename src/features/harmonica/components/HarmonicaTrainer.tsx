@@ -3,19 +3,33 @@
 import { useEffect, useRef, useState } from "react";
 import { weddingMarch } from "../domain/weddingMarch";
 import type { HarmonicaNote } from "../domain/types";
-import { HarmonicaSynth } from "../services/HarmonicaSynth";
+import { MidiPlayer } from "../services/MidiPlayer";
 import { PlaybackClock } from "../services/PlaybackClock";
 import { PlaybackControls } from "./PlaybackControls";
 import { RhythmStage } from "./RhythmStage";
 
 export function HarmonicaTrainer() {
+  const [song, setSong] = useState(weddingMarch);
   const [isPlaying, setIsPlaying] = useState(false);
   const [elapsed, setElapsed] = useState(0);
   const [speed, setSpeed] = useState(1);
+  const [midiReady, setMidiReady] = useState(false);
+  const [midiError, setMidiError] = useState(false);
   const clock = useRef(new PlaybackClock(weddingMarch.duration));
-  const synth = useRef(new HarmonicaSynth());
+  const midiPlayer = useRef(new MidiPlayer());
   const animationFrame = useRef<number | null>(null);
-  const lastPlayedIndex = useRef(-1);
+
+  useEffect(() => {
+    const player = midiPlayer.current;
+    player.load("/songs/wedding-march.mid")
+      .then((fullSong) => {
+        clock.current.setDuration(fullSong.duration);
+        setSong(fullSong);
+        setMidiReady(true);
+      })
+      .catch(() => setMidiError(true));
+    return () => player.stop();
+  }, []);
 
   useEffect(() => {
     const animate = (now: number) => {
@@ -23,7 +37,7 @@ export function HarmonicaTrainer() {
       setElapsed(next);
       if (clock.current.hasEnded(now)) {
         clock.current.reset();
-        lastPlayedIndex.current = -1;
+        midiPlayer.current.stop();
         setIsPlaying(false);
         return;
       }
@@ -31,44 +45,52 @@ export function HarmonicaTrainer() {
     };
 
     if (isPlaying) {
-      clock.current.play(performance.now());
       animationFrame.current = requestAnimationFrame(animate);
     }
     return () => { if (animationFrame.current) cancelAnimationFrame(animationFrame.current); };
   }, [isPlaying]);
 
-  useEffect(() => {
-    if (!isPlaying) return;
-    const nextIndex = weddingMarch.notes.findIndex((note) => note.at > elapsed);
-    const indexToPlay = nextIndex === -1 ? weddingMarch.notes.length - 1 : Math.max(0, nextIndex - 1);
-    if (indexToPlay > lastPlayedIndex.current) {
-      for (let index = lastPlayedIndex.current + 1; index <= indexToPlay; index += 1) synth.current.play(weddingMarch.notes[index]);
-      lastPlayedIndex.current = indexToPlay;
+  const togglePlayback = async () => {
+    if (isPlaying) {
+      clock.current.pause(performance.now());
+      midiPlayer.current.stop();
+      setIsPlaying(false);
+      return;
     }
-  }, [elapsed, isPlaying]);
-
-  const togglePlayback = () => {
-    if (isPlaying) clock.current.pause(performance.now());
-    setIsPlaying((value) => !value);
+    if (!midiReady) return;
+    await midiPlayer.current.play({
+      from: elapsed,
+      duration: song.duration - elapsed,
+      speed,
+    });
+    clock.current.play(performance.now());
+    setIsPlaying(true);
   };
 
   const resetPlayback = () => {
     setIsPlaying(false);
     clock.current.reset();
-    lastPlayedIndex.current = -1;
+    midiPlayer.current.stop();
     setElapsed(0);
   };
 
-  const updateSpeed = (nextSpeed: number) => {
-    clock.current.setSpeed(nextSpeed, performance.now());
+  const updateSpeed = async (nextSpeed: number) => {
+    const now = performance.now();
+    const position = clock.current.positionAt(now);
+    clock.current.setSpeed(nextSpeed, now);
+    setElapsed(position);
     setSpeed(nextSpeed);
+    if (isPlaying) await midiPlayer.current.play({ from: position, duration: song.duration - position, speed: nextSpeed });
   };
 
-  const currentNote = findCurrentNote(weddingMarch.notes, elapsed);
+  const currentNote = findCurrentNote(song.notes, elapsed);
+
+  const audioStatus = midiError ? "MIDIを読み込めませんでした" : midiReady ? undefined : "伴奏を読み込み中…";
 
   return <main className="rhythm-app">
-    <PlaybackControls elapsed={elapsed} duration={weddingMarch.duration} isPlaying={isPlaying} speed={speed} current={currentNote} onToggle={togglePlayback} onReset={resetPlayback} onSpeedChange={updateSpeed} />
-    <RhythmStage song={weddingMarch} elapsed={elapsed} currentNote={currentNote} />
+    <PlaybackControls elapsed={elapsed} duration={song.duration} isPlaying={isPlaying} speed={speed} current={currentNote} onToggle={togglePlayback} onReset={resetPlayback} onSpeedChange={updateSpeed} />
+    <RhythmStage song={song} elapsed={elapsed} currentNote={currentNote} />
+    {audioStatus && <p className="audio-status">{audioStatus}</p>}
   </main>;
 }
 

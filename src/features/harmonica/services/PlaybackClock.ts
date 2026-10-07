@@ -3,7 +3,11 @@ export class PlaybackClock {
   private pausedAt = 0;
   private speed = 1;
 
-  constructor(private readonly duration: number) {}
+  constructor(private duration: number) {}
+
+  setDuration(duration: number) {
+    this.duration = duration;
+  }
 
   play(now: number) {
     this.startedAt = now;

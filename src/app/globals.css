@@ -1,5 +1,12 @@
 @import "tailwindcss";
 
+.audio-status {
+  margin: 0;
+  color: #a7bdd2;
+  font-size: 0.82rem;
+  text-align: center;
+}
+
 .score-credit { grid-column: 1 / -1; margin: -8px 0 0; color: #6f7780; font-size: 10px; text-align: center; }
 
 :root { --blue: #42b9e6; --pink: #ff9b91; --ink: #f5f5f5; }
