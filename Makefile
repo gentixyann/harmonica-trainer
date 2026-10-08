@@ -1,4 +1,4 @@
-.PHONY: help dev build start lint install
+.PHONY: help dev stop build start lint install
 
 PORT_START ?= 3000
 PORT_END ?= 3010
@@ -47,6 +47,31 @@ dev: ## 開発サーバーを必ず利用可能な状態で起動
 	done; \
 	echo "ポート $(PORT_START)-$(PORT_END) はすべて使用中です。"; \
 	exit 1
+
+stop: ## このプロジェクトの開発サーバーを停止
+	@project_dir="$(CURDIR)"; lock_file=".next/dev/lock"; stopped=0; \
+	stop_server() { \
+		server_pid="$$1"; \
+		process_dir=$$(lsof -a -p "$$server_pid" -d cwd -Fn 2>/dev/null | sed -n 's/^n//p'); \
+		process_command=$$(ps -p "$$server_pid" -o command= 2>/dev/null); \
+		if [ "$$process_dir" = "$$project_dir" ] && echo "$$process_command" | grep -q "next-server"; then \
+			echo "開発サーバー（PID $$server_pid）を停止します"; \
+			kill "$$server_pid" 2>/dev/null || true; \
+			for attempt in 1 2 3 4 5; do kill -0 "$$server_pid" 2>/dev/null || break; sleep 1; done; \
+			if kill -0 "$$server_pid" 2>/dev/null; then kill -9 "$$server_pid" 2>/dev/null || true; fi; \
+			stopped=1; \
+		fi; \
+	}; \
+	if [ -f "$$lock_file" ]; then \
+		lock_pid=$$(sed -n 's/.*"pid":\([0-9][0-9]*\).*/\1/p' "$$lock_file"); \
+		if [ -n "$$lock_pid" ]; then stop_server "$$lock_pid"; fi; \
+	fi; \
+	for port in $$(seq $(PORT_START) $(PORT_END)); do \
+		pid=$$(lsof -tiTCP:$$port -sTCP:LISTEN 2>/dev/null | head -n 1); \
+		if [ -n "$$pid" ]; then stop_server "$$pid"; fi; \
+	done; \
+	rm -f "$$lock_file"; \
+	if [ "$$stopped" -eq 0 ]; then echo "このプロジェクトの開発サーバーは起動していません。"; fi
 
 build: ## 本番用にビルド
 	npm run build
