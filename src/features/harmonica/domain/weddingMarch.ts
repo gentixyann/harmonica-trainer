@@ -13,15 +13,15 @@ const g: ScoreNote = { hole: 12, breath: "blow" };
 
 const mainTheme: ScoreNote[] = [
   { hole: 14, breath: "blow" }, { hole: 15, breath: "draw" },
-  { hole: 11, breath: "draw" }, { hole: 13, breath: "draw" },
-  { hole: 12, breath: "blow" }, { hole: 11, breath: "draw" },
+  { hole: 13, breath: "draw" }, { hole: 12, breath: "blow" },
+  { hole: 11, breath: "draw" },
   { hole: 9, breath: "draw" }, { hole: 8, breath: "blow" },
 ];
 
 const bridge: ScoreNote[] = [
-  { hole: 15, breath: "draw" }, { hole: 14, breath: "blow" },
-  { hole: 17, breath: "draw" }, { hole: 18, breath: "blow" },
-  { hole: 17, breath: "draw" }, { hole: 16, breath: "blow" },
+  { hole: 7, breath: "draw" }, { hole: 8, breath: "blow" },
+  { hole: 9, breath: "draw" }, { hole: 12, breath: "blow" },
+  { hole: 9, breath: "draw" }, { hole: 10, breath: "blow" },
 ];
 
 const rise: ScoreNote[] = [
@@ -29,9 +29,9 @@ const rise: ScoreNote[] = [
 ];
 
 const endingBridge: ScoreNote[] = [
-  { hole: 15, breath: "draw" }, { hole: 14, breath: "blow" }, { hole: 16, breath: "blow" },
-  { hole: 17, breath: "draw" }, { hole: 16, breath: "blow" }, { hole: 17, breath: "draw" },
-  { hole: 14, breath: "blow" },
+  { hole: 7, breath: "draw" }, { hole: 8, breath: "blow" }, { hole: 10, breath: "blow" },
+  { hole: 9, breath: "draw" }, { hole: 10, breath: "blow" }, { hole: 9, breath: "draw" },
+  { hole: 8, breath: "blow" },
 ];
 
 /**
@@ -46,14 +46,16 @@ function buildBeginnerScore(): Song {
   const append = ({ at, length, ...note }: TimedScoreNote) => {
     notes.push({ ...note, at: startAt + at * BEAT, length: length * BEAT });
   };
-  const appendGroup = (note: ScoreNote, at: number) => {
+  const appendGroup = (note: ScoreNote, at: number, heldLength = 2) => {
     append({ ...note, at, length: 1 / 3 });
     append({ ...note, at: at + 1 / 3, length: 1 / 3 });
     append({ ...note, at: at + 2 / 3, length: 1 / 3 });
-    append({ ...note, at: at + 1, length: 2 });
+    append({ ...note, at: at + 1, length: heldLength });
   };
   const appendMainTheme = (at: number) => {
-    const rhythm = [2, 1.5, 0.5, 1, 1, 0.5, 0.5, 2];
+    // The chromatic F♯ and the large F→A leap are omitted for beginners.
+    // All passing notes are at least one beat long.
+    const rhythm = [2, 2, 1, 1, 1, 1, 2];
     let next = at;
     mainTheme.forEach((note, index) => {
       append({ ...note, at: next, length: rhythm[index] });
@@ -62,39 +64,36 @@ function buildBeginnerScore(): Song {
   };
 
   const appendFirstTheme = (offset: number) => {
-    // These timings are the lead-note onsets from the supplied MIDI at ♩=130.
-    // Every event remains monophonic; accompaniment is intentionally omitted.
+    // The opening fanfare keeps the lead-note onsets from the supplied MIDI.
+    // Later phrases remove fast ornaments and large leaps for beginners.
     appendGroup(c, offset);
     appendGroup(c, offset + 4);
     append({ ...c, at: offset + 8, length: 1 / 3 });
     append({ ...c, at: offset + 8 + 1 / 3, length: 1 / 3 });
     append({ ...c, at: offset + 8 + 2 / 3, length: 1 / 3 });
     append({ ...e, at: offset + 9, length: 1 });
-    appendGroup(e, offset + 10);
+    appendGroup(e, offset + 10, 1);
     append({ ...e, at: offset + 12, length: 1 / 3 });
     append({ ...e, at: offset + 12 + 1 / 3, length: 1 / 3 });
     append({ ...e, at: offset + 12 + 2 / 3, length: 1 / 3 });
     append({ ...g, at: offset + 13, length: 1 });
-    appendGroup(g, offset + 14);
+    appendGroup(g, offset + 14, 1);
 
     appendMainTheme(offset + 17);
-    bridge.forEach((note, index) => append({ ...note, at: offset + 26.875 + [0, 0.125, 0.25, 1.25, 2.25, 2.5][index], length: [0.125, 0.125, 1, 1, 0.25, 1][index] }));
-    rise.forEach((note, index) => append({ ...note, at: offset + 31.5 + [0, 0.5, 1][index], length: 0.25 }));
-    appendMainTheme(offset + 33);
-    endingBridge.forEach((note, index) => append({ ...note, at: offset + 42 + [0, 0.25, 0.5, 1.5, 2.25, 2.5, 4.5][index], length: [0.25, 0.25, 1, 0.75, 0.25, 2, 1][index] }));
-    ([{ hole: 18, breath: "blow" }, { hole: 16, breath: "blow" }, { hole: 17, breath: "draw" }] as ScoreNote[]).forEach((note, index) => append({ ...note, at: offset + 47 + index, length: 1 }));
-    append({ hole: 14, breath: "blow", at: offset + 50, length: 3 });
+    bridge.forEach((note, index) => append({ ...note, at: offset + 28 + index, length: 1 }));
+    rise.forEach((note, index) => append({ ...note, at: offset + 35 + index, length: 1 }));
+    appendMainTheme(offset + 39);
+    endingBridge.forEach((note, index) => append({ ...note, at: offset + 50 + index, length: index === endingBridge.length - 1 ? 3 : 1 }));
   };
 
   appendFirstTheme(0);
-  appendFirstTheme(56);
-  // A final C-major cadence closes the repeated first theme at about one minute.
-  ([{ hole: 18, breath: "blow" }, { hole: 16, breath: "blow" }, { hole: 17, breath: "draw" }, { hole: 14, breath: "blow" }] as ScoreNote[]).forEach((note, index) => append({ ...note, at: 112 + index * 2, length: index === 3 ? 5 : 1 }));
+  appendFirstTheme(61);
+  append({ ...c, at: 122, length: 3 });
 
   return {
     title: "結婚行進曲",
-    subtitle: "C調21穴・単音で吹く 約1分の主題練習版",
-    duration: startAt + 124 * BEAT,
+    subtitle: "C調21穴・初心者向け 約1分の単音主題練習版",
+    duration: startAt + 126 * BEAT,
     notes,
   };
 }
