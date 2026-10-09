@@ -28,7 +28,7 @@ export function PlaybackTransport({ elapsed, duration, isPlaying, onToggle, onRe
           <span>{formatTime(elapsed)} / {formatTime(duration)}</span>
         </label>
       </div>
-      <p className="score-credit">出典：Mutopia Project の結婚行進曲（CC BY-SA 4.0）を、TOMBO 3121 C調向けに主旋律化</p>
+      <p className="score-credit">出典：添付の TOMBO 3121 初心者用ショート譜をもとにした単音練習版</p>
     </footer>;
 }
 
