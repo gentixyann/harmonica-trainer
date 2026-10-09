@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { weddingMarch } from "../domain/weddingMarch";
 import { MidiPlayer } from "../services/MidiPlayer";
 import { PlaybackClock } from "../services/PlaybackClock";
-import { PlaybackControls } from "./PlaybackControls";
+import { PlaybackControls, PlaybackTransport } from "./PlaybackControls";
 import { RhythmStage } from "./RhythmStage";
 
 export function HarmonicaTrainer() {
@@ -85,8 +85,9 @@ export function HarmonicaTrainer() {
   const audioStatus = midiError ? "MIDIを読み込めませんでした" : midiReady ? undefined : "伴奏を読み込み中…";
 
   return <main className="rhythm-app">
-    <PlaybackControls elapsed={elapsed} duration={song.duration} isPlaying={isPlaying} onToggle={togglePlayback} onReset={resetPlayback} onSeek={seekPlayback} />
+    <PlaybackControls isPlaying={isPlaying} onToggle={togglePlayback} onReset={resetPlayback} />
     <RhythmStage song={song} elapsed={elapsed} />
+    <PlaybackTransport elapsed={elapsed} duration={song.duration} isPlaying={isPlaying} onToggle={togglePlayback} onReset={resetPlayback} onSeek={seekPlayback} />
     {audioStatus && <p className="audio-status">{audioStatus}</p>}
   </main>;
 }

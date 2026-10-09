@@ -1,20 +1,25 @@
 type PlaybackControlsProps = {
-  elapsed: number;
-  duration: number;
   isPlaying: boolean;
   onToggle: () => void;
   onReset: () => void;
+};
+
+type PlaybackTransportProps = PlaybackControlsProps & {
+  elapsed: number;
+  duration: number;
   onSeek: (position: number) => void;
 };
 
-export function PlaybackControls({ elapsed, duration, isPlaying, onToggle, onReset, onSeek }: PlaybackControlsProps) {
-  const playLabel = isPlaying ? "Ⅱ 一時停止" : elapsed ? "▶ 再開" : "▶ 演奏スタート";
-  return <>
-    <header className="rhythm-header">
-      <div><span className="mini-logo">♬</span><strong>Harmonica Flow</strong><span className="header-divider" /> <span>21-hole Tremolo · Key C</span></div>
-      <div className="header-actions"><button onClick={onReset}>↺ 最初から</button><button className="play-button" onClick={onToggle}>{playLabel}</button></div>
-    </header>
-    <footer className="rhythm-footer">
+export function PlaybackControls({ isPlaying, onToggle, onReset }: PlaybackControlsProps) {
+  const playLabel = isPlaying ? "Ⅱ 一時停止" : "▶ 演奏スタート";
+  return <header className="rhythm-header">
+    <div><span className="mini-logo">♬</span><strong>Harmonica Flow</strong><span className="header-divider" /> <span>21-hole Tremolo · Key C</span></div>
+    <div className="header-actions"><button onClick={onReset}>↺ 最初から</button><button className="play-button" onClick={onToggle}>{playLabel}</button></div>
+  </header>;
+}
+
+export function PlaybackTransport({ elapsed, duration, isPlaying, onToggle, onReset, onSeek }: PlaybackTransportProps) {
+  return <footer className="rhythm-footer">
       <div className="transport">
         <button aria-label="最初から" onClick={onReset}>|◀</button>
         <button aria-label={isPlaying ? "一時停止" : "再生"} className="round-play" onClick={onToggle}>{isPlaying ? "Ⅱ" : "▶"}</button>
@@ -24,8 +29,7 @@ export function PlaybackControls({ elapsed, duration, isPlaying, onToggle, onRes
         </label>
       </div>
       <p className="score-credit">出典：Mutopia Project の結婚行進曲（CC BY-SA 4.0）を、TOMBO 3121 C調向けに主旋律化</p>
-    </footer>
-  </>;
+    </footer>;
 }
 
 function formatTime(seconds: number) {
