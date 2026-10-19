@@ -1,16 +1,20 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { weddingMarch } from "../domain/weddingMarch";
+import { SONG_CATALOG } from "../domain/songCatalog";
 import { PracticeAudioPlayer } from "../services/PracticeAudioPlayer";
 import { PlaybackClock } from "../services/PlaybackClock";
 import { PlaybackControls, PlaybackTransport } from "./PlaybackControls";
 import { RhythmStage } from "./RhythmStage";
+import { SongPreparation, SongSelector } from "./SongSelector";
 
 export function HarmonicaTrainer() {
+  const [selectedSongId, setSelectedSongId] = useState(SONG_CATALOG[0].id);
   const [isPlaying, setIsPlaying] = useState(false);
   const [elapsed, setElapsed] = useState(0);
-  const clock = useRef(new PlaybackClock(weddingMarch.duration));
+  const selectedEntry = SONG_CATALOG.find((entry) => entry.id === selectedSongId) ?? SONG_CATALOG[0];
+  const song = selectedEntry.song;
+  const clock = useRef(new PlaybackClock(SONG_CATALOG[0].song?.duration ?? 0));
   const audioPlayer = useRef(new PracticeAudioPlayer());
   const animationFrame = useRef<number | null>(null);
 
@@ -40,15 +44,16 @@ export function HarmonicaTrainer() {
   }, [isPlaying]);
 
   const togglePlayback = async () => {
+    if (!song) return;
     if (isPlaying) {
       clock.current.pause(performance.now());
       audioPlayer.current.stop();
       setIsPlaying(false);
       return;
     }
-    await audioPlayer.current.play(weddingMarch, {
+    await audioPlayer.current.play(song, {
       from: elapsed,
-      duration: weddingMarch.duration - elapsed,
+      duration: song.duration - elapsed,
     });
     clock.current.play(performance.now());
     setIsPlaying(true);
@@ -62,19 +67,34 @@ export function HarmonicaTrainer() {
   };
 
   const seekPlayback = async (position: number) => {
-    const nextPosition = Math.max(0, Math.min(position, weddingMarch.duration));
+    if (!song) return;
+    const nextPosition = Math.max(0, Math.min(position, song.duration));
     clock.current.seek(nextPosition, performance.now());
     setElapsed(nextPosition);
     if (!isPlaying) return;
 
     audioPlayer.current.stop();
-    await audioPlayer.current.play(weddingMarch, { from: nextPosition, duration: weddingMarch.duration - nextPosition });
+    await audioPlayer.current.play(song, { from: nextPosition, duration: song.duration - nextPosition });
     clock.current.play(performance.now());
   };
 
+  const selectSong = (id: string) => {
+    const nextEntry = SONG_CATALOG.find((entry) => entry.id === id);
+    if (!nextEntry) return;
+    audioPlayer.current.stop();
+    clock.current.reset();
+    clock.current.setDuration(nextEntry.song?.duration ?? 0);
+    setIsPlaying(false);
+    setElapsed(0);
+    setSelectedSongId(id);
+  };
+
   return <main className="rhythm-app">
-    <PlaybackControls isPlaying={isPlaying} onToggle={togglePlayback} onReset={resetPlayback} />
-    <RhythmStage song={weddingMarch} elapsed={elapsed} />
-    <PlaybackTransport elapsed={elapsed} duration={weddingMarch.duration} isPlaying={isPlaying} onToggle={togglePlayback} onReset={resetPlayback} onSeek={seekPlayback} />
+    <PlaybackControls disabled={!song} isPlaying={isPlaying} onToggle={togglePlayback} onReset={resetPlayback} />
+    <SongSelector songs={SONG_CATALOG} selectedId={selectedSongId} onSelect={selectSong} />
+    {song ? <>
+      <RhythmStage song={song} elapsed={elapsed} />
+      <PlaybackTransport elapsed={elapsed} duration={song.duration} isPlaying={isPlaying} onToggle={togglePlayback} onReset={resetPlayback} onSeek={seekPlayback} />
+    </> : <SongPreparation song={selectedEntry} />}
   </main>;
 }

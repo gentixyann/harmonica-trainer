@@ -1,4 +1,5 @@
 type PlaybackControlsProps = {
+  disabled?: boolean;
   isPlaying: boolean;
   onToggle: () => void;
   onReset: () => void;
@@ -10,11 +11,11 @@ type PlaybackTransportProps = PlaybackControlsProps & {
   onSeek: (position: number) => void;
 };
 
-export function PlaybackControls({ isPlaying, onToggle, onReset }: PlaybackControlsProps) {
+export function PlaybackControls({ disabled = false, isPlaying, onToggle, onReset }: PlaybackControlsProps) {
   const playLabel = isPlaying ? "Ⅱ 一時停止" : "▶ 演奏スタート";
   return <header className="rhythm-header">
     <div><span className="mini-logo">♬</span><strong>Harmonica Flow</strong><span className="header-divider" /> <span>21-hole Tremolo · Key C</span></div>
-    <div className="header-actions"><button onClick={onReset}>↺ 最初から</button><button className="play-button" onClick={onToggle}>{playLabel}</button></div>
+    <div className="header-actions"><button disabled={disabled} onClick={onReset}>↺ 最初から</button><button disabled={disabled} className="play-button" onClick={onToggle}>{playLabel}</button></div>
   </header>;
 }
 
