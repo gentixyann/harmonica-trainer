@@ -1,4 +1,5 @@
 import type { Song } from "./types";
+import { millionILoveYou } from "./millionILoveYou";
 import { weddingMarch } from "./weddingMarch";
 
 export type SongCatalogEntry = {
@@ -23,7 +24,8 @@ export const SONG_CATALOG: SongCatalogEntry[] = [
     id: "million-i-love-you",
     title: "100万回の「I love you」",
     artist: "Rake",
-    status: "needs-score",
-    description: "メロディMIDI／楽譜の取り込み待ち",
+    status: "ready",
+    description: "C調21穴・原曲MIDI準拠 約1分11秒",
+    song: millionILoveYou,
   },
 ];

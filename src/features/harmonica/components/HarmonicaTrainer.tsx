@@ -12,6 +12,7 @@ export function HarmonicaTrainer() {
   const [selectedSongId, setSelectedSongId] = useState(SONG_CATALOG[0].id);
   const [isPlaying, setIsPlaying] = useState(false);
   const [elapsed, setElapsed] = useState(0);
+  const [audioError, setAudioError] = useState("");
   const selectedEntry = SONG_CATALOG.find((entry) => entry.id === selectedSongId) ?? SONG_CATALOG[0];
   const song = selectedEntry.song;
   const clock = useRef(new PlaybackClock(SONG_CATALOG[0].song?.duration ?? 0));
@@ -51,18 +52,25 @@ export function HarmonicaTrainer() {
       setIsPlaying(false);
       return;
     }
-    await audioPlayer.current.play(song, {
-      from: elapsed,
-      duration: song.duration - elapsed,
-    });
-    clock.current.play(performance.now());
-    setIsPlaying(true);
+    try {
+      setAudioError("");
+      const startDelay = await audioPlayer.current.play(song, {
+        from: elapsed,
+        duration: song.duration - elapsed,
+      });
+      clock.current.play(performance.now(), startDelay);
+      setIsPlaying(true);
+    } catch (error) {
+      audioPlayer.current.stop();
+      setAudioError(error instanceof Error ? error.message : "音源を再生できませんでした");
+    }
   };
 
   const resetPlayback = () => {
     setIsPlaying(false);
     clock.current.reset();
     audioPlayer.current.stop();
+    setAudioError("");
     setElapsed(0);
   };
 
@@ -74,8 +82,15 @@ export function HarmonicaTrainer() {
     if (!isPlaying) return;
 
     audioPlayer.current.stop();
-    await audioPlayer.current.play(song, { from: nextPosition, duration: song.duration - nextPosition });
-    clock.current.play(performance.now());
+    try {
+      setAudioError("");
+      const startDelay = await audioPlayer.current.play(song, { from: nextPosition, duration: song.duration - nextPosition });
+      clock.current.play(performance.now(), startDelay);
+    } catch (error) {
+      clock.current.pause(performance.now());
+      setIsPlaying(false);
+      setAudioError(error instanceof Error ? error.message : "音源を再生できませんでした");
+    }
   };
 
   const selectSong = (id: string) => {
@@ -85,6 +100,7 @@ export function HarmonicaTrainer() {
     clock.current.reset();
     clock.current.setDuration(nextEntry.song?.duration ?? 0);
     setIsPlaying(false);
+    setAudioError("");
     setElapsed(0);
     setSelectedSongId(id);
   };
@@ -94,7 +110,8 @@ export function HarmonicaTrainer() {
     <SongSelector songs={SONG_CATALOG} selectedId={selectedSongId} onSelect={selectSong} />
     {song ? <>
       <RhythmStage song={song} elapsed={elapsed} />
-      <PlaybackTransport elapsed={elapsed} duration={song.duration} isPlaying={isPlaying} onToggle={togglePlayback} onReset={resetPlayback} onSeek={seekPlayback} />
+      <PlaybackTransport elapsed={elapsed} duration={song.duration} credit={song.credit} isPlaying={isPlaying} onToggle={togglePlayback} onReset={resetPlayback} onSeek={seekPlayback} />
+      {audioError && <p className="audio-status" role="alert">{audioError}</p>}
     </> : <SongPreparation song={selectedEntry} />}
   </main>;
 }

@@ -8,8 +8,8 @@ export class PlaybackClock {
     this.duration = duration;
   }
 
-  play(now: number) {
-    this.startedAt = now;
+  play(now: number, delaySeconds = 0) {
+    this.startedAt = now + delaySeconds * 1000;
   }
 
   pause(now: number) {
@@ -29,7 +29,7 @@ export class PlaybackClock {
 
   positionAt(now: number) {
     if (this.startedAt === null) return this.pausedAt;
-    return Math.min(this.pausedAt + (now - this.startedAt) / 1000, this.duration);
+    return Math.min(this.pausedAt + Math.max(0, now - this.startedAt) / 1000, this.duration);
   }
 
   hasEnded(now: number) {

@@ -8,6 +8,7 @@ type PlaybackControlsProps = {
 type PlaybackTransportProps = PlaybackControlsProps & {
   elapsed: number;
   duration: number;
+  credit: string;
   onSeek: (position: number) => void;
 };
 
@@ -19,7 +20,7 @@ export function PlaybackControls({ disabled = false, isPlaying, onToggle, onRese
   </header>;
 }
 
-export function PlaybackTransport({ elapsed, duration, isPlaying, onToggle, onReset, onSeek }: PlaybackTransportProps) {
+export function PlaybackTransport({ elapsed, duration, credit, isPlaying, onToggle, onReset, onSeek }: PlaybackTransportProps) {
   return <footer className="rhythm-footer">
       <div className="transport">
         <button aria-label="最初から" onClick={onReset}>|◀</button>
@@ -29,7 +30,7 @@ export function PlaybackTransport({ elapsed, duration, isPlaying, onToggle, onRe
           <span>{formatTime(elapsed)} / {formatTime(duration)}</span>
         </label>
       </div>
-      <p className="score-credit">出典：添付の TOMBO 3121 初心者用ショート譜をもとにした単音練習版</p>
+      <p className="score-credit">{credit}</p>
     </footer>;
 }
 

@@ -92,7 +92,9 @@ function buildBeginnerScore(): Song {
 
   return {
     title: "結婚行進曲",
+    artist: "Felix Mendelssohn",
     subtitle: "C調21穴・初心者向け 約1分の単音主題練習版",
+    credit: "出典：添付の TOMBO 3121 初心者用ショート譜をもとにした単音練習版",
     duration: startAt + 126 * BEAT,
     notes,
   };

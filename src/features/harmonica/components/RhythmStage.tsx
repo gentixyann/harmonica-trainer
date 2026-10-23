@@ -14,7 +14,7 @@ export function RhythmStage({ song, elapsed }: RhythmStageProps) {
   return <section className="rhythm-stage" aria-label={`${song.title}の落下譜面`}>
     <div className="stage-top">
       <div className="legend"><span><i className="blow-dot" /> BLOW（吹く）</span><span><i className="draw-dot" /> DRAW（吸う）</span></div>
-      <div className="song-title"><small>MENDELSSOHN</small><strong>{song.title}</strong><span>{song.subtitle}</span></div>
+      <div className="song-title"><small>{song.artist.toUpperCase()}</small><strong>{song.title}</strong><span>{song.subtitle}</span></div>
     </div>
     <div className="scroll-track">
       <div className="lanes">{HARMONICA_LAYOUT.map((position) => <div className={`lane ${position.note === "ド" ? "do-lane" : ""}`} key={position.hole}><ScaleDegree position={position} /></div>)}</div>
