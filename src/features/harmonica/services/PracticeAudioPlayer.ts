@@ -1,5 +1,6 @@
 import type { MidiAudioSource, Song } from "../domain/types";
 import { pitchFor } from "../domain/tuning";
+import { HarmonicaSamplePlayer } from "./HarmonicaSamplePlayer";
 import { MidiFileParser, type MidiNoteEvent } from "./MidiFileParser";
 
 type PlaybackOptions = {
@@ -19,6 +20,7 @@ export class PracticeAudioPlayer {
   private scheduler: number | null = null;
   private generation = 0;
   private readonly midiCache = new Map<string, Promise<MidiNoteEvent[]>>();
+  private readonly harmonicaSamples = new HarmonicaSamplePlayer();
   private noiseBuffer: AudioBuffer | null = null;
 
   async play(song: Song, options: PlaybackOptions) {
@@ -29,12 +31,17 @@ export class PracticeAudioPlayer {
     await context.resume();
 
     if (song.midiAudio) {
-      const notes = await this.loadMidi(song.midiAudio.url);
+      const [notes] = await Promise.all([
+        this.loadMidi(song.midiAudio.url),
+        this.harmonicaSamples.load(context),
+      ]);
       if (generation !== this.generation) return 0;
       this.playMidi(context, notes, song, song.midiAudio, options, SCHEDULING_LEAD_SECONDS);
       return SCHEDULING_LEAD_SECONDS + audioOutputLatency(context);
     }
 
+    await this.harmonicaSamples.load(context);
+    if (generation !== this.generation) return 0;
     this.playPracticeNotes(context, song, options, SCHEDULING_LEAD_SECONDS);
     return SCHEDULING_LEAD_SECONDS + audioOutputLatency(context);
   }
@@ -104,16 +111,12 @@ export class PracticeAudioPlayer {
         const transpose = note.channel === source.melodyChannel
           ? source.melodyTranspose
           : source.accompanimentTranspose;
-        this.schedulePitchedNote(
-          context,
-          note.midi + transpose,
-          note.velocity,
-          note.program,
-          note.channel === source.melodyChannel,
-          startsAt,
-          clippedEnd - clippedStart,
-          master,
-        );
+        const midi = note.midi + transpose;
+        if (note.channel === source.melodyChannel) {
+          this.scheduleHarmonicaNote(context, midi, note.velocity, startsAt, clippedEnd - clippedStart, master);
+        } else {
+          this.schedulePitchedNote(context, midi, note.velocity, note.program, startsAt, clippedEnd - clippedStart, master);
+        }
       }
 
       if (cursor >= playableNotes.length && this.scheduler !== null) {
@@ -148,8 +151,20 @@ export class PracticeAudioPlayer {
       if (midi === undefined) continue;
       const noteStart = Math.max(note.at, from);
       const noteEnd = Math.min(end, until);
-      this.schedulePitchedNote(context, midi, 104, 22, true, startsAt + noteStart - from, noteEnd - noteStart, master);
+      this.scheduleHarmonicaNote(context, midi, 104, startsAt + noteStart - from, noteEnd - noteStart, master);
     }
+  }
+
+  private scheduleHarmonicaNote(
+    context: AudioContext,
+    midi: number,
+    velocity: number,
+    startsAt: number,
+    duration: number,
+    destination: AudioNode,
+  ) {
+    const sources = this.harmonicaSamples.schedule(context, midi, velocity, startsAt, duration, destination);
+    sources.forEach((source) => this.trackSource(source));
   }
 
   private schedulePitchedNote(
@@ -157,7 +172,6 @@ export class PracticeAudioPlayer {
     midi: number,
     velocity: number,
     program: number,
-    isMelody: boolean,
     startsAt: number,
     duration: number,
     destination: AudioNode,
@@ -165,7 +179,7 @@ export class PracticeAudioPlayer {
     const oscillator = context.createOscillator();
     const filter = context.createBiquadFilter();
     const gain = context.createGain();
-    const profile = instrumentProfile(program, isMelody);
+    const profile = instrumentProfile(program);
     const safeDuration = Math.max(0.035, duration);
     const peak = Math.max(0.002, velocity / 127 * profile.level);
 
@@ -239,8 +253,7 @@ export class PracticeAudioPlayer {
   }
 }
 
-function instrumentProfile(program: number, isMelody: boolean) {
-  if (isMelody) return { wave: "triangle" as OscillatorType, attack: 0.018, sustain: 0.82, level: 0.07, filter: 3200 };
+function instrumentProfile(program: number) {
   if (program >= 32 && program <= 39) return { wave: "triangle" as OscillatorType, attack: 0.012, sustain: 0.66, level: 0.04, filter: 1100 };
   if (program >= 16 && program <= 23) return { wave: "sine" as OscillatorType, attack: 0.04, sustain: 0.86, level: 0.028, filter: 2600 };
   if (program >= 24 && program <= 31) return { wave: "triangle" as OscillatorType, attack: 0.006, sustain: 0.35, level: 0.034, filter: 2400 };
