@@ -9,6 +9,7 @@ import { MidiFileParser } from "../services/MidiFileParser";
 import { PracticeAudioPlayer } from "../services/PracticeAudioPlayer";
 import { PlaybackClock } from "../services/PlaybackClock";
 import { PlaybackControls, PlaybackTransport } from "./PlaybackControls";
+import { OrientationPrompt } from "./OrientationPrompt";
 import { RhythmStage } from "./RhythmStage";
 import { SongPreparation, SongSelector } from "./SongSelector";
 
@@ -147,6 +148,7 @@ export function HarmonicaTrainer() {
   };
 
   return <main className="rhythm-app">
+    <OrientationPrompt />
     <PlaybackControls disabled={!song} isPlaying={isPlaying} onToggle={togglePlayback} onReset={resetPlayback} />
     <SongSelector songs={songCards} selectedId={selectedSongId} onSelect={selectSong} />
     {song ? <>
