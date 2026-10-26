@@ -8,7 +8,7 @@ export type HarmonicaNote = {
 };
 
 export type MidiAudioSource = {
-  url: string;
+  notes: import("../services/MidiFileParser").MidiNoteEvent[];
   sourceOffset: number;
   melodyChannel: number;
   melodyTranspose: number;

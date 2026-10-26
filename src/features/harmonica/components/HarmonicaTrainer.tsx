@@ -1,7 +1,11 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { createMillionILoveYouSong } from "../domain/millionILoveYou";
 import { SONG_CATALOG } from "../domain/songCatalog";
+import type { Song } from "../domain/types";
+import { LocalMidiStore } from "../services/LocalMidiStore";
+import { MidiFileParser } from "../services/MidiFileParser";
 import { PracticeAudioPlayer } from "../services/PracticeAudioPlayer";
 import { PlaybackClock } from "../services/PlaybackClock";
 import { PlaybackControls, PlaybackTransport } from "./PlaybackControls";
@@ -13,8 +17,14 @@ export function HarmonicaTrainer() {
   const [isPlaying, setIsPlaying] = useState(false);
   const [elapsed, setElapsed] = useState(0);
   const [audioError, setAudioError] = useState("");
+  const [localSong, setLocalSong] = useState<Song | null>(null);
+  const [midiLoading, setMidiLoading] = useState(false);
+  const [midiError, setMidiError] = useState("");
   const selectedEntry = SONG_CATALOG.find((entry) => entry.id === selectedSongId) ?? SONG_CATALOG[0];
-  const song = selectedEntry.song;
+  const song = selectedSongId === "million-i-love-you" ? localSong ?? undefined : selectedEntry.song;
+  const songCards = SONG_CATALOG.map((entry) => entry.id === "million-i-love-you" && localSong
+    ? { ...entry, status: "ready" as const, song: localSong, description: "C調21穴・MIDIから変換 約1分11秒" }
+    : entry);
   const clock = useRef(new PlaybackClock(SONG_CATALOG[0].song?.duration ?? 0));
   const audioPlayer = useRef(new PracticeAudioPlayer());
   const animationFrame = useRef<number | null>(null);
@@ -23,6 +33,37 @@ export function HarmonicaTrainer() {
     const player = audioPlayer.current;
     return () => player.stop();
   }, []);
+
+  useEffect(() => {
+    let mounted = true;
+    new LocalMidiStore().load().then((buffer) => {
+      if (!buffer || !mounted) return;
+      const restored = createMillionILoveYouSong(new MidiFileParser().parse(buffer));
+      setLocalSong(restored);
+      // The current song starts as Wedding March; selectSong sets the duration later.
+    }).catch(() => { /* Private browsing may disable local storage. */ });
+    return () => { mounted = false; };
+  }, []);
+
+  const importMidi = async (file: File) => {
+    setMidiError("");
+    setMidiLoading(true);
+    try {
+      const buffer = await file.arrayBuffer();
+      const imported = createMillionILoveYouSong(new MidiFileParser().parse(buffer));
+      audioPlayer.current.stop();
+      clock.current.reset();
+      clock.current.setDuration(imported.duration);
+      setElapsed(0);
+      setIsPlaying(false);
+      setLocalSong(imported);
+      await new LocalMidiStore().save(buffer).catch(() => { /* Playback still works without persistence. */ });
+    } catch (error) {
+      setMidiError(error instanceof Error ? error.message : "MIDIを読み込めませんでした");
+    } finally {
+      setMidiLoading(false);
+    }
+  };
 
   useEffect(() => {
     const animate = (now: number) => {
@@ -98,7 +139,7 @@ export function HarmonicaTrainer() {
     if (!nextEntry) return;
     audioPlayer.current.stop();
     clock.current.reset();
-    clock.current.setDuration(nextEntry.song?.duration ?? 0);
+    clock.current.setDuration((id === "million-i-love-you" ? localSong : nextEntry.song)?.duration ?? 0);
     setIsPlaying(false);
     setAudioError("");
     setElapsed(0);
@@ -107,11 +148,11 @@ export function HarmonicaTrainer() {
 
   return <main className="rhythm-app">
     <PlaybackControls disabled={!song} isPlaying={isPlaying} onToggle={togglePlayback} onReset={resetPlayback} />
-    <SongSelector songs={SONG_CATALOG} selectedId={selectedSongId} onSelect={selectSong} />
+    <SongSelector songs={songCards} selectedId={selectedSongId} onSelect={selectSong} />
     {song ? <>
-      <RhythmStage song={song} elapsed={elapsed} />
+      <div className="stage-viewport"><RhythmStage song={song} elapsed={elapsed} /></div>
       <PlaybackTransport elapsed={elapsed} duration={song.duration} credit={song.credit} isPlaying={isPlaying} onToggle={togglePlayback} onReset={resetPlayback} onSeek={seekPlayback} />
       {audioError && <p className="audio-status" role="alert">{audioError}</p>}
-    </> : <SongPreparation song={selectedEntry} />}
+    </> : <SongPreparation song={selectedEntry} onMidiFile={selectedSongId === "million-i-love-you" ? importMidi : undefined} isLoading={midiLoading} error={midiError} />}
   </main>;
 }

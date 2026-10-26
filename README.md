@@ -1,36 +1,31 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Harmonica Flow
 
-## Getting Started
+TOMBO 3121 C調の21穴複音ハーモニカを、落下バーに合わせて練習するNext.jsアプリです。
 
-First, run the development server:
+## スマホで使う
+
+[公開版](https://harmonica-trainer.vercel.app/)をスマホのブラウザで開きます。結婚行進曲はそのまま再生できます。
+
+「100万回の『I love you』」を使うには、購入したメロディMIDIをスマホの「ファイル」アプリに保存しておき、曲を選択して「MIDIファイルを選ぶ」を押してください。初回読み込み後は、そのブラウザの端末内ストレージに保存されます。MIDIはサーバーへ送信されません。小さな画面では横向き表示がおすすめです。
+
+## ローカル開発
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+npm ci
+make dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+表示された `http://localhost:3000` などのURLを開きます。同じWi-Fiのスマホでは、開発サーバーが表示する Network URL を開けます。終了は `make stop` です。
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Vercelへの更新
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+Vercel CLIでリンク済みです。変更を反映するには、ビルドと検査の後、以下を実行します。
 
-## Learn More
+```bash
+npm run lint
+npm run build
+vercel deploy --dry --json --scope jp-transcendence --project harmonica-trainer
+vercel deploy --prod --yes --scope jp-transcendence --project harmonica-trainer
+```
 
-To learn more about Next.js, take a look at the following resources:
-
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+購入MIDIと、それから抽出した譜面JSONは `.gitignore` と `.vercelignore` の対象です。これらをGitやVercelの公開ファイルに追加しないでください。

@@ -1,7 +1,7 @@
 import type { MidiAudioSource, Song } from "../domain/types";
 import { pitchFor } from "../domain/tuning";
 import { HarmonicaSamplePlayer } from "./HarmonicaSamplePlayer";
-import { MidiFileParser, type MidiNoteEvent } from "./MidiFileParser";
+import type { MidiNoteEvent } from "./MidiFileParser";
 
 type PlaybackOptions = {
   from: number;
@@ -19,7 +19,6 @@ export class PracticeAudioPlayer {
   private sources: AudioScheduledSourceNode[] = [];
   private scheduler: number | null = null;
   private generation = 0;
-  private readonly midiCache = new Map<string, Promise<MidiNoteEvent[]>>();
   private readonly harmonicaSamples = new HarmonicaSamplePlayer();
   private noiseBuffer: AudioBuffer | null = null;
 
@@ -31,12 +30,9 @@ export class PracticeAudioPlayer {
     await context.resume();
 
     if (song.midiAudio) {
-      const [notes] = await Promise.all([
-        this.loadMidi(song.midiAudio.url),
-        this.harmonicaSamples.load(context),
-      ]);
+      await this.harmonicaSamples.load(context);
       if (generation !== this.generation) return 0;
-      this.playMidi(context, notes, song, song.midiAudio, options, SCHEDULING_LEAD_SECONDS);
+      this.playMidi(context, song.midiAudio.notes, song, song.midiAudio, options, SCHEDULING_LEAD_SECONDS);
       return SCHEDULING_LEAD_SECONDS + audioOutputLatency(context);
     }
 
@@ -56,20 +52,6 @@ export class PracticeAudioPlayer {
     this.sources = [];
     this.master?.disconnect();
     this.master = null;
-  }
-
-  private async loadMidi(url: string) {
-    let request = this.midiCache.get(url);
-    if (!request) {
-      request = fetch(url)
-        .then((response) => {
-          if (!response.ok) throw new Error(`MIDIを読み込めませんでした (${response.status})`);
-          return response.arrayBuffer();
-        })
-        .then((buffer) => new MidiFileParser().parse(buffer));
-      this.midiCache.set(url, request);
-    }
-    return request;
   }
 
   private playMidi(

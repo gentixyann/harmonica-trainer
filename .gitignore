@@ -36,6 +36,11 @@ yarn-error.log*
 # vercel
 .vercel
 
+# Purchased MIDI and practice data derived from it stay on the user's device.
+/public/songs/*.mid
+/public/songs/*.midi
+/src/features/harmonica/data/millionILoveYouNotes.json
+
 # typescript
 *.tsbuildinfo
 next-env.d.ts

@@ -1,12 +1,11 @@
 import type { Song } from "./types";
-import { millionILoveYou } from "./millionILoveYou";
 import { weddingMarch } from "./weddingMarch";
 
 export type SongCatalogEntry = {
   id: string;
   title: string;
   artist: string;
-  status: "ready" | "needs-score";
+  status: "ready" | "needs-score" | "local-midi";
   description: string;
   song?: Song;
 };
@@ -24,8 +23,7 @@ export const SONG_CATALOG: SongCatalogEntry[] = [
     id: "million-i-love-you",
     title: "100万回の「I love you」",
     artist: "Rake",
-    status: "ready",
-    description: "C調21穴・原曲MIDI準拠 約1分11秒",
-    song: millionILoveYou,
+    status: "local-midi",
+    description: "手元のメロディMIDIを選択して練習",
   },
 ];
