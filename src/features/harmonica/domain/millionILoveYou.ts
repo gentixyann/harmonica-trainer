@@ -2,7 +2,9 @@ import type { MidiNoteEvent } from "../services/MidiFileParser";
 import { HARMONICA_LAYOUT } from "./tuning";
 import type { HarmonicaNote, Song } from "./types";
 
-const PRACTICE_DURATION = 71;
+// The first chorus melody ends at 101.324s; leave its closing accompaniment
+// through 104.09s, before the next verse begins at 104.24s.
+const PRACTICE_DURATION = 104.1;
 const MELODY_CHANNEL = 0;
 const MELODY_TRANSPOSE = -8;
 
@@ -26,7 +28,7 @@ export function createMillionILoveYouSong(midiNotes: MidiNoteEvent[]): Song {
   return {
     title: "100万回の「I love you」",
     artist: "Rake",
-    subtitle: "C調21穴・MIDIから端末内で変換 約1分11秒",
+    subtitle: "C調21穴・MIDIから端末内で変換 約1分44秒",
     credit: "端末内で選択したMIDIを個人練習用にC調・短尺化",
     duration: PRACTICE_DURATION,
     notes,

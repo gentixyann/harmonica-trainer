@@ -24,7 +24,7 @@ export function HarmonicaTrainer() {
   const selectedEntry = SONG_CATALOG.find((entry) => entry.id === selectedSongId) ?? SONG_CATALOG[0];
   const song = selectedSongId === "million-i-love-you" ? localSong ?? undefined : selectedEntry.song;
   const songCards = SONG_CATALOG.map((entry) => entry.id === "million-i-love-you" && localSong
-    ? { ...entry, status: "ready" as const, song: localSong, description: "C調21穴・MIDIから変換 約1分11秒" }
+    ? { ...entry, status: "ready" as const, song: localSong, description: "C調21穴・MIDIから変換 約1分44秒" }
     : entry);
   const clock = useRef(new PlaybackClock(SONG_CATALOG[0].song?.duration ?? 0));
   const audioPlayer = useRef(new PracticeAudioPlayer());
