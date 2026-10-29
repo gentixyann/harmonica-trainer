@@ -6,11 +6,12 @@ import type { MidiNoteEvent } from "./MidiFileParser";
 type PlaybackOptions = {
   from: number;
   duration: number;
+  rate: number;
 };
 
 const LOOK_AHEAD_SECONDS = 1.2;
 const SCHEDULER_INTERVAL_MS = 200;
-const SCHEDULING_LEAD_SECONDS = 0.06;
+const SCHEDULING_LEAD_SECONDS = 0.12;
 
 /** Plays generated practice notes or a MIDI-backed arrangement in sync with the falling bars. */
 export class PracticeAudioPlayer {
@@ -32,14 +33,14 @@ export class PracticeAudioPlayer {
     if (song.midiAudio) {
       await this.harmonicaSamples.load(context);
       if (generation !== this.generation) return 0;
-      this.playMidi(context, song.midiAudio.notes, song, song.midiAudio, options, SCHEDULING_LEAD_SECONDS);
-      return SCHEDULING_LEAD_SECONDS + audioOutputLatency(context);
+      const startsAt = this.playMidi(context, song.midiAudio.notes, song, song.midiAudio, options, SCHEDULING_LEAD_SECONDS);
+      return Math.max(0, startsAt - context.currentTime) + audioOutputLatency(context);
     }
 
     await this.harmonicaSamples.load(context);
     if (generation !== this.generation) return 0;
-    this.playPracticeNotes(context, song, options, SCHEDULING_LEAD_SECONDS);
-    return SCHEDULING_LEAD_SECONDS + audioOutputLatency(context);
+    const startsAt = this.playPracticeNotes(context, song, options, SCHEDULING_LEAD_SECONDS);
+    return Math.max(0, startsAt - context.currentTime) + audioOutputLatency(context);
   }
 
   stop() {
@@ -59,7 +60,7 @@ export class PracticeAudioPlayer {
     midiNotes: MidiNoteEvent[],
     song: Song,
     source: MidiAudioSource,
-    { from, duration }: PlaybackOptions,
+    { from, duration, rate }: PlaybackOptions,
     schedulingLead: number,
   ) {
     const master = context.createGain();
@@ -75,8 +76,8 @@ export class PracticeAudioPlayer {
     let cursor = 0;
 
     const scheduleWindow = () => {
-      const relativeNow = from + Math.max(0, context.currentTime - contextStart);
-      const sourceWindowEnd = source.sourceOffset + Math.min(relativeUntil, relativeNow + LOOK_AHEAD_SECONDS);
+      const relativeNow = from + Math.max(0, context.currentTime - contextStart) * rate;
+      const sourceWindowEnd = source.sourceOffset + Math.min(relativeUntil, relativeNow + LOOK_AHEAD_SECONDS * rate);
 
       while (cursor < playableNotes.length && playableNotes[cursor].at < sourceWindowEnd) {
         const note = playableNotes[cursor++];
@@ -84,7 +85,7 @@ export class PracticeAudioPlayer {
         const clippedEnd = Math.min(note.at + note.length, sourceUntil);
         if (clippedEnd <= clippedStart) continue;
 
-        const startsAt = contextStart + clippedStart - sourceFrom;
+        const startsAt = contextStart + (clippedStart - sourceFrom) / rate;
         if (note.channel === 9) {
           this.schedulePercussion(context, note.midi, note.velocity, startsAt, master);
           continue;
@@ -95,9 +96,9 @@ export class PracticeAudioPlayer {
           : source.accompanimentTranspose;
         const midi = note.midi + transpose;
         if (note.channel === source.melodyChannel) {
-          this.scheduleHarmonicaNote(context, midi, note.velocity, startsAt, clippedEnd - clippedStart, master);
+          this.scheduleHarmonicaNote(context, midi, note.velocity, startsAt, (clippedEnd - clippedStart) / rate, master);
         } else {
-          this.schedulePitchedNote(context, midi, note.velocity, note.program, startsAt, clippedEnd - clippedStart, master);
+          this.schedulePitchedNote(context, midi, note.velocity, note.program, startsAt, (clippedEnd - clippedStart) / rate, master);
         }
       }
 
@@ -111,12 +112,13 @@ export class PracticeAudioPlayer {
     if (cursor < playableNotes.length) {
       this.scheduler = window.setInterval(scheduleWindow, SCHEDULER_INTERVAL_MS);
     }
+    return contextStart;
   }
 
   private playPracticeNotes(
     context: AudioContext,
     song: Song,
-    { from, duration }: PlaybackOptions,
+    { from, duration, rate }: PlaybackOptions,
     schedulingLead: number,
   ) {
     const master = context.createGain();
@@ -133,8 +135,9 @@ export class PracticeAudioPlayer {
       if (midi === undefined) continue;
       const noteStart = Math.max(note.at, from);
       const noteEnd = Math.min(end, until);
-      this.scheduleHarmonicaNote(context, midi, 104, startsAt + noteStart - from, noteEnd - noteStart, master);
+      this.scheduleHarmonicaNote(context, midi, 104, startsAt + (noteStart - from) / rate, (noteEnd - noteStart) / rate, master);
     }
+    return startsAt;
   }
 
   private scheduleHarmonicaNote(

@@ -1,11 +1,16 @@
 export class PlaybackClock {
   private startedAt: number | null = null;
   private pausedAt = 0;
+  private rate = 1;
 
   constructor(private duration: number) {}
 
   setDuration(duration: number) {
     this.duration = duration;
+  }
+
+  setRate(rate: number) {
+    this.rate = rate;
   }
 
   play(now: number, delaySeconds = 0) {
@@ -29,7 +34,7 @@ export class PlaybackClock {
 
   positionAt(now: number) {
     if (this.startedAt === null) return this.pausedAt;
-    return Math.min(this.pausedAt + Math.max(0, now - this.startedAt) / 1000, this.duration);
+    return Math.min(this.pausedAt + Math.max(0, now - this.startedAt) / 1000 * this.rate, this.duration);
   }
 
   hasEnded(now: number) {

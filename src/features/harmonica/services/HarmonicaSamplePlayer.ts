@@ -3,6 +3,7 @@ const SAMPLE_BASE_URL = "/audio/harmonica/vcsl-special20-c";
 type HarmonicaSample = {
   midi: number;
   file: string;
+  startOffsetSeconds: number;
 };
 
 type LoadedSample = HarmonicaSample & {
@@ -10,18 +11,20 @@ type LoadedSample = HarmonicaSample & {
 };
 
 const SAMPLES: HarmonicaSample[] = [
-  { midi: 48, file: "C3.wav" },
-  { midi: 52, file: "E3.wav" },
-  { midi: 60, file: "C4.wav" },
-  { midi: 64, file: "E4.wav" },
-  { midi: 67, file: "G4.wav" },
-  { midi: 72, file: "C5.wav" },
-  { midi: 76, file: "E5.wav" },
-  { midi: 79, file: "G5.wav" },
-  { midi: 84, file: "C6.wav" },
+  // These offsets skip the silence at the start of each bundled recording.
+  // Without them, short repeated MIDI notes can end before the reed is heard.
+  { midi: 48, file: "C3.wav", startOffsetSeconds: 0.025 },
+  { midi: 52, file: "E3.wav", startOffsetSeconds: 0 },
+  { midi: 60, file: "C4.wav", startOffsetSeconds: 0.065 },
+  { midi: 64, file: "E4.wav", startOffsetSeconds: 0.045 },
+  { midi: 67, file: "G4.wav", startOffsetSeconds: 0 },
+  { midi: 72, file: "C5.wav", startOffsetSeconds: 0.07 },
+  { midi: 76, file: "E5.wav", startOffsetSeconds: 0.08 },
+  { midi: 79, file: "G5.wav", startOffsetSeconds: 0.025 },
+  { midi: 84, file: "C6.wav", startOffsetSeconds: 0 },
 ];
 
-const ATTACK_SECONDS = 0.025;
+const ATTACK_SECONDS = 0.008;
 const RELEASE_SECONDS = 0.075;
 
 /** Plays CC0 harmonica recordings as a two-reed tremolo instrument. */
@@ -85,7 +88,7 @@ export class HarmonicaSamplePlayer {
       gain.gain.exponentialRampToValueAtTime(0.0001, endsAt);
 
       source.connect(filter).connect(gain).connect(destination);
-      source.start(reedStart);
+      source.start(reedStart, sample.startOffsetSeconds);
       source.stop(endsAt + 0.01);
       sources.push(source);
     });

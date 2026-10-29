@@ -9,8 +9,12 @@ type PlaybackTransportProps = PlaybackControlsProps & {
   elapsed: number;
   duration: number;
   credit: string;
+  rate: number;
   onSeek: (position: number) => void;
+  onRateChange: (rate: number) => void;
 };
+
+const PLAYBACK_RATES = [0.25, 0.5, 0.75, 1, 1.25, 1.5, 1.75, 2];
 
 export function PlaybackControls({ disabled = false, isPlaying, onToggle, onReset }: PlaybackControlsProps) {
   const playLabel = isPlaying ? "Ⅱ 一時停止" : "▶ 演奏スタート";
@@ -20,7 +24,7 @@ export function PlaybackControls({ disabled = false, isPlaying, onToggle, onRese
   </header>;
 }
 
-export function PlaybackTransport({ elapsed, duration, credit, isPlaying, onToggle, onReset, onSeek }: PlaybackTransportProps) {
+export function PlaybackTransport({ elapsed, duration, credit, rate, isPlaying, onToggle, onReset, onSeek, onRateChange }: PlaybackTransportProps) {
   return <footer className="rhythm-footer">
       <div className="transport">
         <button aria-label="最初から" onClick={onReset}>|◀</button>
@@ -28,6 +32,11 @@ export function PlaybackTransport({ elapsed, duration, credit, isPlaying, onTogg
         <label className="seek-control">
           <input aria-label="再生位置" type="range" min="0" max={duration} step="0.1" value={Math.min(elapsed, duration)} style={{ background: `linear-gradient(to right, #f1d14b ${elapsed / duration * 100}%, #3e444a ${elapsed / duration * 100}%)` }} onChange={(event) => onSeek(Number(event.target.value))} />
           <span>{formatTime(elapsed)} / {formatTime(duration)}</span>
+        </label>
+        <label className="speed-control">速度
+          <select aria-label="再生速度" value={rate} onChange={(event) => onRateChange(Number(event.target.value))}>
+            {PLAYBACK_RATES.map((option) => <option key={option} value={option}>{option === 1 ? "標準 (1×)" : `${option}×`}</option>)}
+          </select>
         </label>
       </div>
       <p className="score-credit">{credit}</p>
