@@ -6,6 +6,8 @@ type TimedScoreNote = ScoreNote & { at: number; length: number };
 // Tempo read from the supplied source MIDI: ♩ = 130.
 const ORIGINAL_BPM = 130;
 const BEAT = 60 / ORIGINAL_BPM;
+// Preserve most of a beat for breathing; only trim the conspicuously long rests.
+const MAX_PHRASE_REST = BEAT * 3 / 4;
 
 const c: ScoreNote = { hole: 8, breath: "blow" };
 const e: ScoreNote = { hole: 10, breath: "blow" };
@@ -90,12 +92,32 @@ function buildBeginnerScore(): Song {
   appendFirstTheme(61);
   append({ ...c, at: 122, length: 3 });
 
+  // The simplified phrases were placed on whole-beat boundaries, leaving
+  // repeated half-second holes in both the audio and falling bars. Keep the
+  // note durations and 130 BPM fanfare while retaining a natural phrase break.
+  const flowingNotes = shortenPhraseRests(notes);
+  const finalNote = flowingNotes[flowingNotes.length - 1];
+
   return {
     title: "結婚行進曲",
     artist: "Felix Mendelssohn",
     subtitle: "C調21穴・初心者向け 約1分の単音主題練習版",
     credit: "出典：添付の TOMBO 3121 初心者用ショート譜をもとにした単音練習版",
-    duration: startAt + 126 * BEAT,
-    notes,
+    duration: finalNote.at + (finalNote.length ?? 0) + 0.4,
+    notes: flowingNotes,
   };
+}
+
+function shortenPhraseRests(notes: HarmonicaNote[]): HarmonicaNote[] {
+  let removedTime = 0;
+  let previousEnd = 0;
+
+  return notes.map((note, index) => {
+    if (index > 0) {
+      const rest = note.at - previousEnd;
+      removedTime += Math.max(0, rest - MAX_PHRASE_REST);
+    }
+    previousEnd = note.at + (note.length ?? 0);
+    return { ...note, at: note.at - removedTime };
+  });
 }
