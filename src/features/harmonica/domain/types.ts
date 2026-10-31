@@ -13,6 +13,8 @@ export type MidiAudioSource = {
   melodyChannel: number;
   melodyTranspose: number;
   accompanimentTranspose: number;
+  /** When set, play only this acoustic-guitar channel alongside the melody. */
+  guitarChannel?: number;
 };
 
 export type Song = {

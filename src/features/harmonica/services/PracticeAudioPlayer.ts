@@ -1,5 +1,6 @@
 import type { MidiAudioSource, Song } from "../domain/types";
 import { pitchFor } from "../domain/tuning";
+import { AcousticGuitarSamplePlayer } from "./AcousticGuitarSamplePlayer";
 import { HarmonicaSamplePlayer } from "./HarmonicaSamplePlayer";
 import type { MidiNoteEvent } from "./MidiFileParser";
 
@@ -21,6 +22,7 @@ export class PracticeAudioPlayer {
   private scheduler: number | null = null;
   private generation = 0;
   private readonly harmonicaSamples = new HarmonicaSamplePlayer();
+  private readonly guitarSamples = new AcousticGuitarSamplePlayer();
   private noiseBuffer: AudioBuffer | null = null;
 
   async play(song: Song, options: PlaybackOptions) {
@@ -31,7 +33,10 @@ export class PracticeAudioPlayer {
     await context.resume();
 
     if (song.midiAudio) {
-      await this.harmonicaSamples.load(context);
+      await Promise.all([
+        this.harmonicaSamples.load(context),
+        song.midiAudio.guitarChannel === undefined ? Promise.resolve() : this.guitarSamples.load(context),
+      ]);
       if (generation !== this.generation) return 0;
       const startsAt = this.playMidi(context, song.midiAudio.notes, song, song.midiAudio, options, SCHEDULING_LEAD_SECONDS);
       return Math.max(0, startsAt - context.currentTime) + audioOutputLatency(context);
@@ -71,7 +76,10 @@ export class PracticeAudioPlayer {
     const relativeUntil = Math.min(song.duration, from + duration);
     const sourceFrom = source.sourceOffset + from;
     const sourceUntil = source.sourceOffset + relativeUntil;
-    const playableNotes = midiNotes.filter((note) => note.at < sourceUntil && note.at + note.length > sourceFrom);
+    const playableNotes = midiNotes.filter((note) =>
+      note.at < sourceUntil && note.at + note.length > sourceFrom &&
+      (source.guitarChannel === undefined || note.channel === source.melodyChannel || note.channel === source.guitarChannel)
+    );
     const contextStart = context.currentTime + schedulingLead;
     let cursor = 0;
 
@@ -97,6 +105,8 @@ export class PracticeAudioPlayer {
         const midi = note.midi + transpose;
         if (note.channel === source.melodyChannel) {
           this.scheduleHarmonicaNote(context, midi, note.velocity, startsAt, (clippedEnd - clippedStart) / rate, master);
+        } else if (note.channel === source.guitarChannel) {
+          this.trackSource(this.guitarSamples.schedule(context, midi, note.velocity, startsAt, (clippedEnd - clippedStart) / rate, master));
         } else {
           this.schedulePitchedNote(context, midi, note.velocity, note.program, startsAt, (clippedEnd - clippedStart) / rate, master);
         }

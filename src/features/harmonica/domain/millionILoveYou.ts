@@ -38,6 +38,7 @@ export function createMillionILoveYouSong(midiNotes: MidiNoteEvent[]): Song {
       melodyChannel: MELODY_CHANNEL,
       melodyTranspose: MELODY_TRANSPOSE,
       accompanimentTranspose: 4,
+      guitarChannel: 6,
     },
   };
 }
