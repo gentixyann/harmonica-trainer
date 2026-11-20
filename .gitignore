@@ -36,8 +36,9 @@ yarn-error.log*
 # vercel
 .vercel
 
-# Purchased MIDI and practice data derived from it stay on the user's device.
+# Only the MIDI explicitly licensed for public distribution is committed.
 /public/songs/*.mid
+!/public/songs/million-i-love-you.mid
 /public/songs/*.midi
 /src/features/harmonica/data/millionILoveYouNotes.json
 

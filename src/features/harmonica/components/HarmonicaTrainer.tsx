@@ -1,13 +1,11 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
-import { createMillionILoveYouSong } from "../domain/millionILoveYou";
-import { SONG_CATALOG } from "../domain/songCatalog";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { SONG_CATALOG, type SongCatalogEntry } from "../domain/songCatalog";
 import type { Song } from "../domain/types";
-import { LocalMidiStore } from "../services/LocalMidiStore";
-import { MidiFileParser } from "../services/MidiFileParser";
 import { PracticeAudioPlayer } from "../services/PracticeAudioPlayer";
 import { PlaybackClock } from "../services/PlaybackClock";
+import { SharedMidiSongLoader } from "../services/SharedMidiSongLoader";
 import { PlaybackControls, PlaybackTransport } from "./PlaybackControls";
 import { OrientationPrompt } from "./OrientationPrompt";
 import { RhythmStage } from "./RhythmStage";
@@ -19,18 +17,32 @@ export function HarmonicaTrainer() {
   const [elapsed, setElapsed] = useState(0);
   const [playbackRate, setPlaybackRate] = useState(1);
   const [audioError, setAudioError] = useState("");
-  const [localSong, setLocalSong] = useState<Song | null>(null);
-  const [midiLoading, setMidiLoading] = useState(false);
+  const [sharedSong, setSharedSong] = useState<Song | null>(null);
+  const [midiLoading, setMidiLoading] = useState(true);
   const [midiError, setMidiError] = useState("");
   const selectedEntry = SONG_CATALOG.find((entry) => entry.id === selectedSongId) ?? SONG_CATALOG[0];
-  const song = selectedSongId === "million-i-love-you" ? localSong ?? undefined : selectedEntry.song;
-  const songCards = SONG_CATALOG.map((entry) => entry.id === "million-i-love-you" && localSong
-    ? { ...entry, status: "ready" as const, song: localSong, description: "C調21穴・MIDIから変換 約1分44秒" }
+  const song = selectedSongId === "million-i-love-you" ? sharedSong ?? undefined : selectedEntry.song;
+  const songCards: SongCatalogEntry[] = SONG_CATALOG.map((entry) => entry.id === "million-i-love-you"
+    ? { ...entry, status: sharedSong ? "ready" : midiError ? "error" : "loading", song: sharedSong ?? undefined,
+      description: sharedSong ? "C調21穴・共有MIDIから変換 約1分44秒" : entry.description }
     : entry);
   const clock = useRef(new PlaybackClock(SONG_CATALOG[0].song?.duration ?? 0));
   const audioPlayer = useRef(new PracticeAudioPlayer());
+  const sharedMidiLoader = useRef(new SharedMidiSongLoader());
+  const selectedSongIdRef = useRef(selectedSongId);
   const animationFrame = useRef<number | null>(null);
   const playbackRequest = useRef(0);
+
+  const acceptSharedSong = useCallback((loaded: Song) => {
+    setSharedSong(loaded);
+    if (selectedSongIdRef.current !== "million-i-love-you") return;
+    playbackRequest.current += 1;
+    audioPlayer.current.stop();
+    clock.current.reset();
+    clock.current.setDuration(loaded.duration);
+    setElapsed(0);
+    setIsPlaying(false);
+  }, []);
 
   useEffect(() => {
     const player = audioPlayer.current;
@@ -39,31 +51,20 @@ export function HarmonicaTrainer() {
 
   useEffect(() => {
     let mounted = true;
-    new LocalMidiStore().load().then((buffer) => {
-      if (!buffer || !mounted) return;
-      const restored = createMillionILoveYouSong(new MidiFileParser().parse(buffer));
-      setLocalSong(restored);
-      // The current song starts as Wedding March; selectSong sets the duration later.
-    }).catch(() => { /* Private browsing may disable local storage. */ });
+    sharedMidiLoader.current.load()
+      .then((loaded) => { if (mounted) acceptSharedSong(loaded); })
+      .catch((error) => { if (mounted) setMidiError(error instanceof Error ? error.message : "共有MIDIを読み込めませんでした"); })
+      .finally(() => { if (mounted) setMidiLoading(false); });
     return () => { mounted = false; };
-  }, []);
+  }, [acceptSharedSong]);
 
-  const importMidi = async (file: File) => {
+  const retryMidi = async () => {
     setMidiError("");
     setMidiLoading(true);
     try {
-      const buffer = await file.arrayBuffer();
-      const imported = createMillionILoveYouSong(new MidiFileParser().parse(buffer));
-      playbackRequest.current += 1;
-      audioPlayer.current.stop();
-      clock.current.reset();
-      clock.current.setDuration(imported.duration);
-      setElapsed(0);
-      setIsPlaying(false);
-      setLocalSong(imported);
-      await new LocalMidiStore().save(buffer).catch(() => { /* Playback still works without persistence. */ });
+      acceptSharedSong(await sharedMidiLoader.current.load());
     } catch (error) {
-      setMidiError(error instanceof Error ? error.message : "MIDIを読み込めませんでした");
+      setMidiError(error instanceof Error ? error.message : "共有MIDIを読み込めませんでした");
     } finally {
       setMidiLoading(false);
     }
@@ -161,10 +162,11 @@ export function HarmonicaTrainer() {
   const selectSong = (id: string) => {
     const nextEntry = SONG_CATALOG.find((entry) => entry.id === id);
     if (!nextEntry) return;
+    selectedSongIdRef.current = id;
     playbackRequest.current += 1;
     audioPlayer.current.stop();
     clock.current.reset();
-    clock.current.setDuration((id === "million-i-love-you" ? localSong : nextEntry.song)?.duration ?? 0);
+    clock.current.setDuration((id === "million-i-love-you" ? sharedSong : nextEntry.song)?.duration ?? 0);
     setIsPlaying(false);
     setAudioError("");
     setElapsed(0);
@@ -179,6 +181,6 @@ export function HarmonicaTrainer() {
       <div className="stage-viewport"><RhythmStage song={song} elapsed={elapsed} /></div>
       <PlaybackTransport elapsed={elapsed} duration={song.duration} credit={song.credit} rate={playbackRate} isPlaying={isPlaying} onToggle={togglePlayback} onReset={resetPlayback} onSeek={seekPlayback} onRateChange={changePlaybackRate} />
       {audioError && <p className="audio-status" role="alert">{audioError}</p>}
-    </> : <SongPreparation song={selectedEntry} onMidiFile={selectedSongId === "million-i-love-you" ? importMidi : undefined} isLoading={midiLoading} error={midiError} />}
+    </> : <SongPreparation song={selectedEntry} onRetry={retryMidi} isLoading={midiLoading} error={midiError} />}
   </main>;
 }

@@ -8,9 +8,9 @@ TOMBO 3121 C調の21穴複音ハーモニカを、落下バーに合わせて練
 
 ## スマホで使う
 
-上の公開サイトをスマホのブラウザで開きます。結婚行進曲はそのまま再生できます。
+上の公開サイトをスマホのブラウザで開きます。結婚行進曲と「100万回の『I love you』」の両方を、MIDIファイルの選択なしで練習できます。小さな画面では横向き表示がおすすめです。
 
-「100万回の『I love you』」を使うには、購入したメロディMIDIをスマホの「ファイル」アプリに保存しておき、曲を選択して「MIDIファイルを選ぶ」を押してください。初回読み込み後は、そのブラウザの端末内ストレージに保存されます。MIDIはサーバーへ送信されません。小さな画面では横向き表示がおすすめです。
+「100万回の『I love you』」のMIDIは、公開配信と改変の許可を得たものを `public/songs/million-i-love-you.mid` に配置しています。各ブラウザは公開サイトから同じMIDIを読み込み、C調21穴向けの譜面と再生音を生成します。データベースは使いません。
 
 ## ローカル開発
 
@@ -32,4 +32,4 @@ vercel deploy --dry --json --scope jp-transcendence --project harmonica-trainer
 vercel deploy --prod --yes --scope jp-transcendence --project harmonica-trainer
 ```
 
-購入MIDIと、それから抽出した譜面JSONは `.gitignore` と `.vercelignore` の対象です。これらをGitやVercelの公開ファイルに追加しないでください。
+公開許可を得た `public/songs/million-i-love-you.mid` のみ、GitとVercelへ含めます。ほかのMIDIと、以前の端末内変換から生成した譜面JSONは `.gitignore` と `.vercelignore` の対象です。Gitで公開するMIDIは誰でも取得できるため、追加する曲も公開配信の許可を確認してください。

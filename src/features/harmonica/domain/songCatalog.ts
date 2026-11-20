@@ -5,7 +5,7 @@ export type SongCatalogEntry = {
   id: string;
   title: string;
   artist: string;
-  status: "ready" | "needs-score" | "local-midi";
+  status: "ready" | "loading" | "error";
   description: string;
   song?: Song;
 };
@@ -23,7 +23,7 @@ export const SONG_CATALOG: SongCatalogEntry[] = [
     id: "million-i-love-you",
     title: "100万回の「I love you」",
     artist: "Rake",
-    status: "local-midi",
-    description: "手元のメロディMIDIを選択して練習",
+    status: "loading",
+    description: "共有MIDIを読み込み、C調21穴に変換",
   },
 ];

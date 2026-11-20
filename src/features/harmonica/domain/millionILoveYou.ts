@@ -8,7 +8,7 @@ const PRACTICE_DURATION = 104.1;
 const MELODY_CHANNEL = 0;
 const MELODY_TRANSPOSE = -8;
 
-/** Builds a personal practice score from a MIDI selected on this device. */
+/** Builds a C-tuned practice score from the shared MIDI. */
 export function createMillionILoveYouSong(midiNotes: MidiNoteEvent[]): Song {
   const notes: HarmonicaNote[] = midiNotes
     .filter((note) => note.channel === MELODY_CHANNEL && note.at < PRACTICE_DURATION)
@@ -28,8 +28,8 @@ export function createMillionILoveYouSong(midiNotes: MidiNoteEvent[]): Song {
   return {
     title: "100万回の「I love you」",
     artist: "Rake",
-    subtitle: "C調21穴・MIDIから端末内で変換 約1分44秒",
-    credit: "端末内で選択したMIDIを個人練習用にC調・短尺化",
+    subtitle: "C調21穴・共有MIDIから変換 約1分44秒",
+    credit: "共有MIDIの主旋律をC調21穴向けに変換",
     duration: PRACTICE_DURATION,
     notes,
     midiAudio: {

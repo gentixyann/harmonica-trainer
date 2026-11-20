@@ -1,5 +1,6 @@
-# Private MIDI files are selected from the user's device in the browser.
+# Include only the MIDI licensed for public distribution.
 public/songs/*.mid
+!public/songs/million-i-love-you.mid
 public/songs/*.midi
 src/features/harmonica/data/millionILoveYouNotes.json
 tmp/**
